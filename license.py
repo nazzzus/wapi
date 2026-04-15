@@ -20,7 +20,7 @@ except ImportError:
 
 # ── Config ──────────────────────────────────────────────────────────────────
 # Change this to your deployed Railway URL before building the .exe
-BACKEND_URL = "https://your-app.railway.app"
+BACKEND_URL = "https://wapi-production-04e6.up.railway.app"
 
 LICENSE_FILE = Path(__file__).parent / "wapi_license.json"
 APP_VERSION  = "1.0.0"

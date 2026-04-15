@@ -19,6 +19,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 try:
@@ -32,6 +33,11 @@ load_dotenv()
 # ── App & core config ──────────────────────────────────────────────────────
 
 app = Flask(__name__)
+
+# ── Reverse proxy fix (Railway, Heroku, nginx, etc.) ──────────────────────
+# Ohne ProxyFix denkt Flask es läuft auf http:// statt https:// und
+# generiert falsche callback-URLs für OAuth.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 _secret = os.environ.get("SECRET_KEY", "")
 _INSECURE = {"", "change-me-in-production", "change-this-to-a-random-string"}
