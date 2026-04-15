@@ -63,6 +63,8 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=28800,    # 8 hours
     # CSRF
     WTF_CSRF_TIME_LIMIT=3600,
+    # Force https:// in url_for(_external=True) behind Railway proxy
+    PREFERRED_URL_SCHEME="http" if _is_dev else "https",
 )
 
 # ── Extensions ─────────────────────────────────────────────────────────────
@@ -434,9 +436,24 @@ def _handle_license_key_updated(payload: dict):
 @limiter.limit("10 per minute")
 def admin_login():
     if _USE_AUTH0:
-        # Redirect to Auth0
-        callback = AUTH0_DOMAIN and url_for("auth0_callback", _external=True)
-        return _auth0_client.authorize_redirect(redirect_uri=callback)
+        # Ensure session is writable and persistent before OAuth redirect
+        session.permanent = True
+        # Clear any stale authlib state from a previous failed attempt
+        for k in list(session.keys()):
+            if k.startswith("_state_auth0_") or k.startswith("_auth0_"):
+                session.pop(k, None)
+
+        # Redirect to Auth0. Prefer explicit env var to avoid mismatches
+        # when running behind a reverse proxy that strips X-Forwarded-Proto.
+        callback = (
+            os.environ.get("AUTH0_CALLBACK_URL")
+            or url_for("auth0_callback", _external=True)
+        )
+        app.logger.info(f"[auth0] starting login, redirect_uri={callback}")
+        resp = _auth0_client.authorize_redirect(redirect_uri=callback)
+        # Force the session cookie to be written on the redirect
+        session.modified = True
+        return resp
 
     # Password fallback
     error = None
@@ -458,7 +475,26 @@ def auth0_callback():
     if not _USE_AUTH0:
         return redirect(url_for("admin_login"))
 
-    token    = _auth0_client.authorize_access_token()
+    # Debug: what do we have on arrival?
+    state_keys = [k for k in session.keys() if k.startswith("_state_auth0_")]
+    app.logger.info(
+        f"[auth0] callback hit. session_keys={list(session.keys())} "
+        f"state_in_query={request.args.get('state', '')[:8]}... "
+        f"has_state_in_session={bool(state_keys)}"
+    )
+
+    try:
+        token = _auth0_client.authorize_access_token()
+    except Exception as e:
+        # State mismatch, expired session, etc. — send user back to login
+        app.logger.warning(f"[auth0] callback failed: {type(e).__name__}: {e}")
+        session.clear()
+        return render_template(
+            "admin/login.html",
+            error="Login-Session abgelaufen oder Cookie-Problem. Bitte erneut versuchen.",
+            use_auth0=True,
+        ), 400
+
     userinfo = token.get("userinfo") or {}
     email    = str(userinfo.get("email", "")).lower()
 
