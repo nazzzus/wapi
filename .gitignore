@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Environment / Secrets — NEVER commit these
+.env
+backend/.env
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# License cache (user-specific, not for repo)
+wapi_license.json
+wapi_settings.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# PyInstaller output
+dist/
+build/
+*.spec
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/

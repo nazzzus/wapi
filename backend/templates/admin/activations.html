@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %} — Aktivierungen{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-laptop me-2" style="color:#E8682A"></i>Aktivierungen</h1>
+</div>
+<div class="card">
+  <div class="card-header">Letzte 200 Aktivierungen</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Kunde</th>
+          <th>Gerätename</th>
+          <th>IP-Adresse</th>
+          <th>App-Version</th>
+          <th>Aktiviert am</th>
+          <th>Zuletzt gesehen</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in activations %}
+        <tr>
+          <td>
+            <a href="{{ url_for('admin_customer_detail', customer_id=a.customer.id) }}"
+               class="text-decoration-none text-light fw-semibold">{{ a.customer.email }}</a>
+          </td>
+          <td>{{ a.machine_name or '—' }}</td>
+          <td class="text-muted">{{ a.ip_address or '—' }}</td>
+          <td class="text-muted">{{ a.app_version or '—' }}</td>
+          <td class="text-muted"><small>{{ a.activated_at.strftime('%d.%m.%Y %H:%M') if a.activated_at else '—' }}</small></td>
+          <td class="text-muted"><small>{{ a.last_seen_at.strftime('%d.%m.%Y %H:%M') if a.last_seen_at else '—' }}</small></td>
+          <td>
+            <span class="badge-status {{ 'badge-active' if a.is_active else 'badge-revoked' }}">
+              {{ 'Aktiv' if a.is_active else 'Inaktiv' }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Keine Aktivierungen vorhanden</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

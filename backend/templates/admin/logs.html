@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %} — Webhook-Logs{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-journal-text me-2" style="color:#E8682A"></i>Webhook-Logs</h1>
+</div>
+<div class="card">
+  <div class="card-header">Letzte 100 Events von Lemon Squeezy</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Status</th>
+          <th>Empfangen</th>
+          <th>Payload (Auszug)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="font-mono {{ 'log-ok' if log.status == 'ok' else 'log-error' }}">
+            {{ log.event_name }}
+          </td>
+          <td>
+            <span class="badge-status {{ 'badge-active' if log.status == 'ok' else 'badge-revoked' }}">
+              {{ log.status }}
+            </span>
+          </td>
+          <td class="text-muted">
+            <small>{{ log.received_at.strftime('%d.%m.%Y %H:%M:%S') if log.received_at else '—' }}</small>
+          </td>
+          <td class="font-mono text-muted"
+              style="max-width:480px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="{{ log.payload or '' }}">
+            {{ (log.payload or '')[:140] }}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-4">Keine Logs vorhanden</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

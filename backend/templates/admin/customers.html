@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+{% block title %} — Kunden{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-people-fill me-2" style="color:#E8682A"></i>Kunden</h1>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body p-3">
+    <form method="GET" class="d-flex gap-2 flex-wrap align-items-center">
+      <input type="text" name="q" class="form-control" style="max-width:300px"
+             placeholder="Suche: E-Mail, Name, Lizenzschlüssel" value="{{ search }}">
+      <select name="status" class="form-select" style="max-width:160px">
+        <option value="">Alle Status</option>
+        <option value="active"  {{ 'selected' if status_filter == 'active' }}>Aktiv</option>
+        <option value="revoked" {{ 'selected' if status_filter == 'revoked' }}>Gesperrt</option>
+      </select>
+      <button type="submit" class="btn btn-orange">Suchen</button>
+      {% if search or status_filter %}
+      <a href="{{ url_for('admin_customers') }}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+      <span class="text-muted ms-2" style="font-size:0.85rem">{{ customers|length }} Ergebnis(se)</span>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name / E-Mail</th>
+          <th>Lizenzschlüssel</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Akt.</th>
+          <th>Gekauft</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr>
+          <td class="text-muted">{{ c.id }}</td>
+          <td>
+            <div class="fw-semibold">{{ c.name or '—' }}</div>
+            <small class="text-muted">{{ c.email }}</small>
+          </td>
+          <td><span class="font-mono" style="color:#E8682A;font-size:0.78rem">{{ c.license_key[:22] }}…</span></td>
+          <td><small class="text-muted">{{ c.plan }}</small></td>
+          <td><span class="badge-status badge-{{ c.status }}">{{ c.status }}</span></td>
+          <td class="text-center text-muted">{{ c.activations|length }}</td>
+          <td class="text-muted"><small>{{ c.purchased_at.strftime('%d.%m.%Y') if c.purchased_at else '—' }}</small></td>
+          <td>
+            <a href="{{ url_for('admin_customer_detail', customer_id=c.id) }}"
+               class="btn btn-sm btn-outline-secondary">Details</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Keine Kunden gefunden</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

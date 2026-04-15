@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+{% block title %} — Neue Lizenz{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center gap-3">
+  <a href="{{ url_for('admin_customers') }}" class="text-muted text-decoration-none fs-5">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="mb-0">Lizenz manuell erteilen</h1>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-key-fill me-2"></i>Neue Lizenz erstellen</div>
+      <div class="card-body p-4">
+
+        {% if error %}
+        <div class="alert alert-danger py-2 mb-3" style="background:#3a1a1a;border-color:#5a2d2d;color:#f87171">
+          {{ error }}
+        </div>
+        {% endif %}
+
+        <p class="text-muted mb-4" style="font-size:0.88rem">
+          Erteile eine Lizenz manuell — für Tester, Freunde, Reviewer oder Promo-Codes.
+          Der Lizenzschlüssel wird automatisch generiert, wenn du das Feld leer lässt.
+        </p>
+
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size:0.85rem">E-Mail-Adresse *</label>
+            <input type="email" name="email" class="form-control" placeholder="kunde@beispiel.de" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size:0.85rem">Name</label>
+            <input type="text" name="name" class="form-control" placeholder="Max Mustermann">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size:0.85rem">Plan</label>
+            <select name="plan" class="form-select">
+              <option value="standard">Standard</option>
+              <option value="pro">Pro</option>
+              <option value="lifetime">Lifetime</option>
+              <option value="promo">Promo / Gratis</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size:0.85rem">
+              Lizenzschlüssel
+              <span class="text-muted ms-1" style="font-size:0.78rem">(leer lassen für Auto-Generierung)</span>
+            </label>
+            <input type="text" name="license_key" class="form-control font-mono"
+                   placeholder="WAPI-XXXX-XXXX-XXXX-XXXX"
+                   style="letter-spacing:1px">
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-muted" style="font-size:0.85rem">Interne Notiz</label>
+            <textarea name="notes" class="form-control" rows="2"
+                      placeholder="z. B. Promo für YouTube-Review, Test-Lizenz, etc."></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-orange">
+              <i class="bi bi-key me-1"></i>Lizenz erstellen
+            </button>
+            <a href="{{ url_for('admin_customers') }}" class="btn btn-secondary">Abbrechen</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

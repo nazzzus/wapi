@@ -1,0 +1,105 @@
+# .github/workflows/build-release.yml
+# Builds WAPI.exe on Windows and publishes a GitHub Release
+# Trigger: push a version tag, e.g.  git tag v1.0.0 && git push --tags
+
+name: Build & Release WAPI
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]*"   # matches v1.0.0, v1.2.3-beta, etc.
+
+permissions:
+  contents: write   # needed to create GitHub Releases
+
+jobs:
+  build-windows:
+    name: Build WAPI.exe (Windows)
+    runs-on: windows-latest
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Python ────────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # ── Dependencies ──────────────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller>=6.0.0
+
+      # ── Inject version into binary ─────────────────────────────────────────
+      - name: Write version file
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v')
+          Set-Content -Path version.txt -Value $version
+          echo "Building WAPI $version"
+
+      # ── PyInstaller build ─────────────────────────────────────────────────
+      - name: Build WAPI.exe with PyInstaller
+        run: |
+          pyinstaller ^
+            --onefile ^
+            --windowed ^
+            --icon=assets\icon.ico ^
+            --name=WAPI ^
+            --add-data="assets;assets" ^
+            --add-data="version.txt;." ^
+            --clean ^
+            main.py
+        shell: cmd
+
+      # ── Verify build ──────────────────────────────────────────────────────
+      - name: Verify .exe exists
+        run: |
+          if (!(Test-Path "dist\WAPI.exe")) {
+            Write-Error "WAPI.exe not found — build failed"
+            exit 1
+          }
+          $size = (Get-Item "dist\WAPI.exe").Length / 1MB
+          Write-Host "✓ WAPI.exe built successfully ($([math]::Round($size,1)) MB)"
+        shell: pwsh
+
+      # ── Rename with version ────────────────────────────────────────────────
+      - name: Rename exe with version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $dest = "dist\WAPI-$tag-Windows.exe"
+          Rename-Item "dist\WAPI.exe" $dest
+          echo "RELEASE_ASSET=$dest" >> $env:GITHUB_ENV
+
+      # ── Create GitHub Release ─────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "WAPI ${{ github.ref_name }}"
+          body: |
+            ## WAPI ${{ github.ref_name }}
+
+            ### Installation
+            1. Lade `WAPI-${{ github.ref_name }}-Windows.exe` herunter
+            2. Doppelklick zum Starten — keine Installation nötig
+            3. Gib deinen Lizenzschlüssel ein (erhältlich auf [sultani.de](https://sultani.de))
+
+            ### Systemanforderungen
+            - Windows 10 / 11 (64-bit)
+            - Keine Python-Installation erforderlich
+
+            ### Änderungen
+            Siehe [CHANGELOG](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }})
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: ${{ env.RELEASE_ASSET }}
+          generate_release_notes: true

@@ -1,0 +1,144 @@
+{% extends "admin/base.html" %}
+{% block title %} — {{ customer.email }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center gap-3">
+  <a href="{{ url_for('admin_customers') }}" class="text-muted text-decoration-none fs-5">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="mb-0">{{ customer.name or customer.email }}</h1>
+  <span class="badge-status badge-{{ customer.status }} ms-1">{{ customer.status }}</span>
+  {% if customer.source == 'manual' %}
+  <span class="badge bg-warning text-dark ms-1" style="font-size:0.7rem">Manuell</span>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <!-- Kunden-Info -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-person-fill me-2"></i>Kunden-Info</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <tr><td class="text-muted ps-3" style="width:140px">E-Mail</td><td>{{ customer.email }}</td></tr>
+          <tr><td class="text-muted ps-3">Name</td><td>{{ customer.name or '—' }}</td></tr>
+          <tr><td class="text-muted ps-3">Plan</td><td><span class="badge bg-secondary">{{ customer.plan }}</span></td></tr>
+          <tr><td class="text-muted ps-3">Quelle</td><td class="text-muted">{{ customer.source }}</td></tr>
+          <tr><td class="text-muted ps-3">Seit</td><td>{{ customer.purchased_at.strftime('%d.%m.%Y %H:%M') if customer.purchased_at else '—' }}</td></tr>
+          <tr><td class="text-muted ps-3">LS-Lizenz-ID</td><td class="font-mono" style="font-size:0.8rem">{{ customer.ls_license_id or '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lizenz -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-key-fill me-2"></i>Lizenzschlüssel</div>
+      <div class="card-body">
+        <div class="key-display mb-3">{{ customer.license_key }}</div>
+        <div class="d-flex gap-2 flex-wrap">
+          {% if customer.status == 'active' %}
+          <form method="POST" action="{{ url_for('admin_revoke_license', customer_id=customer.id) }}"
+                onsubmit="return confirm('Gesamte Lizenz sperren? Der Kunde verliert sofort den Zugriff.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-danger">
+              <i class="bi bi-slash-circle me-1"></i>Lizenz sperren
+            </button>
+          </form>
+          {% else %}
+          <form method="POST" action="{{ url_for('admin_activate_license', customer_id=customer.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-success">
+              <i class="bi bi-check-circle me-1"></i>Lizenz reaktivieren
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aktivierungen -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-laptop me-2"></i>Geräte-Aktivierungen
+        <span class="badge bg-secondary ms-1">{{ customer.activations|length }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Gerätename</th>
+              <th>Instanz-ID</th>
+              <th>IP-Adresse</th>
+              <th>Version</th>
+              <th>Aktiviert am</th>
+              <th>Zuletzt aktiv</th>
+              <th>Status</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in customer.activations %}
+            <tr>
+              <td class="fw-semibold">{{ a.machine_name or '—' }}</td>
+              <td class="font-mono text-muted" style="font-size:0.72rem" title="{{ a.instance_id }}">
+                {{ (a.instance_id or '')[:16] }}…
+              </td>
+              <td class="text-muted">{{ a.ip_address or '—' }}</td>
+              <td class="text-muted">{{ a.app_version or '—' }}</td>
+              <td class="text-muted"><small>{{ a.activated_at.strftime('%d.%m.%Y') if a.activated_at else '—' }}</small></td>
+              <td class="text-muted"><small>{{ a.last_seen_at.strftime('%d.%m.%Y %H:%M') if a.last_seen_at else '—' }}</small></td>
+              <td>
+                <span class="badge-status {{ 'badge-active' if a.is_active else 'badge-revoked' }}">
+                  {{ 'Aktiv' if a.is_active else 'Gesperrt' }}
+                </span>
+              </td>
+              <td>
+                {% if a.is_active %}
+                <form method="POST" action="{{ url_for('admin_revoke_activation', activation_id=a.id) }}"
+                      onsubmit="return confirm('Dieses Gerät sperren?')" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size:0.72rem;padding:2px 8px">
+                    <i class="bi bi-x-circle"></i> Sperren
+                  </button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('admin_reactivate_activation', activation_id=a.id) }}"
+                      class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-xs btn-outline-success" style="font-size:0.72rem;padding:2px 8px">
+                    <i class="bi bi-check-circle"></i> Freigeben
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-3">Noch keine Aktivierungen</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notizen -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-sticky-fill me-2"></i>Interne Notizen</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('admin_update_note', customer_id=customer.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <textarea name="notes" class="form-control mb-2" rows="3"
+                    placeholder="Interne Notizen zu diesem Kunden…">{{ customer.notes or '' }}</textarea>
+          <button type="submit" class="btn btn-orange btn-sm">
+            <i class="bi bi-save me-1"></i>Speichern
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
